@@ -1,11 +1,14 @@
 const { createSchema , updateSchema } = require('../validation/book');
 const mongoose = require('../db/mongo');
 const slugify = require('slugify');
+const { verifyJwt } = require('../helper/jwt');
+
 
 const bookSchema = new mongoose.Schema({
     b_name: String,
     b_author: String,
-    slug: String // Slug field
+    slug: String, 
+    user: Number
 });
 
 bookSchema.pre('save', function(next) {
@@ -17,16 +20,34 @@ const bookTable = mongoose.model('Books', bookSchema);
 
 class Book {
     async create(req, res) {
-        try {
+        
+            // Extract JWT token from request headers
+            const token = req.headers.authorization;
+            if (!token) {
+                return res.status(401).send({ error: "Authorization token missing." });
+            }
+    
+            // Verify JWT token
+            const decodedToken = verifyJwt(token.split(' ')[1]); // Remove 'Bearer ' prefix
+    
+            if (!decodedToken || !decodedToken.data || !decodedToken.data.id) {
+                return res.status(401).send({ error: "Invalid token or user ID missing." });
+            }
+    
+            // Extract book data from request body
             const { b_name, b_author } = createSchema.parse(req.body);
-            const data = new bookTable({ b_name, b_author });
+    
+            // Create new book instance
+            const data = new bookTable({ b_name, b_author, user: decodedToken.data.id });
+    
+            // Save book to database
             await data.save();
+    
+            // Send success response
             res.status(201).send({ data });
-        } catch (error) {
-            console.error("Error creating book:", error);
-            res.status(500).send({ error: "Failed to create book." });
-        }
+        
     }
+    
 
     async getAll(req, res) {
         try {

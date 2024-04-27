@@ -3,7 +3,7 @@ const { encrptPassword, match } = require('../helper/password')
 const OTP = require('otp')
 const prisma = require('../db')
 const sendEmail = require('../helper/email')
-const { generateToken, verify, verifyJwt } = require('../helper/jwt')
+const { generateToken,  verifyJwt } = require('../helper/jwt')
 
 class Auth {
 
